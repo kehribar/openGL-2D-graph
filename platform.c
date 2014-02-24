@@ -6,8 +6,14 @@
 /------------------------------------------------------------------------------
 / ihsan Kehribar - 2014
 /----------------------------------------------------------------------------*/
+#include <fcntl.h>
 #include <stdio.h>
-#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <termios.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 int n;
 int port;
