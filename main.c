@@ -27,6 +27,17 @@ extern int platform_init(int argc, char** argv);
 char fpsBuff[128];
 #define FPS_PRINT 1
 
+/* Cursor variables */
+uint16_t cursor1_x;
+uint16_t cursor1_y;
+uint16_t cursor2_x;
+uint16_t cursor2_y;
+uint16_t cursor1_enable;
+uint16_t cursor2_enable;
+
+/* run/pause variable */
+uint8_t pause_acquisition = 0;
+
 /*-----------------------------------------------------------------------------
 / FPS calculation variables
 /----------------------------------------------------------------------------*/
@@ -63,6 +74,64 @@ static void display_function(void)
 
     glLoadIdentity();       
 
+    if(cursor1_enable)
+    {
+        glPushAttrib(GL_ENABLE_BIT); 
+            glLineStipple(1, 0xAAAA);  
+            glEnable(GL_LINE_STIPPLE);
+            glBegin(GL_LINES);            
+                
+                // color of the line (r,g,b)
+                glColor3f(0.27,0.35,0.45);
+
+                // start point (x,y)
+                glVertex2f(cursor1_x,0);
+
+                // end point (x,y)
+                glVertex2f(cursor1_x,HEIGHT);
+
+                // color of the line (r,g,b)
+                glColor3f(0.27,0.35,0.45);
+
+                // start point (x,y)
+                glVertex2f(0,cursor1_y);
+
+                // end point (x,y)            
+                glVertex2f(WIDTH,cursor1_y);
+
+            glEnd();
+        glPopAttrib();    
+    }
+
+    if(cursor2_enable)
+    {
+        glPushAttrib(GL_ENABLE_BIT); 
+            glLineStipple(1, 0xAAAA);  
+            glEnable(GL_LINE_STIPPLE);
+            glBegin(GL_LINES);            
+                
+                // color of the line (r,g,b)
+                glColor3f(0.45,0.27,0.35);
+
+                // start point (x,y)
+                glVertex2f(cursor2_x,0);
+
+                // end point (x,y)
+                glVertex2f(cursor2_x,HEIGHT);
+
+                // color of the line (r,g,b)
+                glColor3f(0.45,0.27,0.35);
+
+                // start point (x,y)
+                glVertex2f(0,cursor2_y);
+
+                // end point (x,y)            
+                glVertex2f(WIDTH,cursor2_y);
+
+            glEnd();
+        glPopAttrib();    
+    }
+
     glBegin(GL_LINES);    
 
         /* Draw the screne buffer */    
@@ -82,7 +151,7 @@ static void display_function(void)
     
     /* Draw the 'middle point' line */
     glPushAttrib(GL_ENABLE_BIT); 
-        glLineStipple(2, 0xAAAA);  
+        glLineStipple(3, 0xAAAA);  
         glEnable(GL_LINE_STIPPLE);
         glBegin(GL_LINES);
         glColor3f (0.7,0.3,0);  
@@ -112,7 +181,7 @@ void myinit(void)
     
     glMatrixMode(GL_MODELVIEW);       
 
-    #if 1
+    #if 0
         // taken from: http://www.glprogramming.com/red/chapter06.html    
         glEnable(GL_LINE_SMOOTH);
         glEnable(GL_BLEND);
@@ -224,6 +293,21 @@ void glutPrint(float x, float y, char* text, float r, float g, float b, float a)
 void myMouseFunc( int button, int state, int x, int y ) 
 {
     printf("button: %d state: %d x_pos: %4d y_pos: %4d\n",button,state,x,y);
+    
+    if(button == 0)
+    {
+        cursor1_enable = 1;
+        cursor1_x = x;
+        cursor1_y = HEIGHT - y;
+    }
+
+    if(button == 2)
+    {
+        cursor2_enable = 1;
+        cursor2_x = x;
+        cursor2_y = HEIGHT - y;
+    }
+
 }
 /*---------------------------------------------------------------------------*/
 void keyb(unsigned char key, int x, int y)
@@ -234,6 +318,17 @@ void keyb(unsigned char key, int x, int y)
     {
         printf("Bye!\n");
         exit(0);
+    }
+
+    if(key == 'x')
+    {
+        cursor1_enable = 0;
+        cursor2_enable = 0;
+    }
+
+    if(key == 32)
+    {
+        pause_acquisition = !pause_acquisition;
     }
 }
 /*---------------------------------------------------------------------------*/

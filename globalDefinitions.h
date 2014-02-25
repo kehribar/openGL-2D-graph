@@ -7,4 +7,3 @@
 /* default window size */
 const int HEIGHT = 512;
 const int WIDTH = 1024;
-

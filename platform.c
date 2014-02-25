@@ -17,7 +17,7 @@
 #include <sys/stat.h>
 #include "globalDefinitions.h"
 
-#define SHIFT_SIZE 256
+#define SHIFT_SIZE 128
 
 // min-max definitions for the incoming data stream
 const uint16_t inputMin = 0;
@@ -33,6 +33,9 @@ double gain;
 // main serial port buffer 
 uint8_t buf[2*SHIFT_SIZE];
 
+// ...
+extern uint8_t pause_acquisition;
+
 // this function is automatically called when the openGL engine is idle
 void fillScreenBuffer(uint16_t* screenBufferPointer,uint16_t size,uint16_t topValue)
 {
@@ -47,21 +50,24 @@ void fillScreenBuffer(uint16_t* screenBufferPointer,uint16_t size,uint16_t topVa
 	{
 		// read the bytes
 		read(port, buf, (2*SHIFT_SIZE));
-		
-		// shift the screen buffer by the amount of new data
-		for (int i = 0; i < (size-SHIFT_SIZE); ++i)
-		{
-			screenBufferPointer[i] = screenBufferPointer[i + SHIFT_SIZE];
-		}
 
-		// load the new data to the screen buffer
-		for (int i = 0; i < SHIFT_SIZE; ++i)
-		{
-			// cast two 8bits data to single 16bits variable
-			tmpVal = (uint16_t)buf[(2*i)+1] + (uint16_t)((uint16_t)buf[(2*i)+0]<<8);
-			
-			// load the data
-			screenBufferPointer[i + size - SHIFT_SIZE] = (uint16_t)((double)(tmpVal-offset) * gain);
+		if(!pause_acquisition)
+		{		
+			// shift the screen buffer by the amount of new data
+			for (int i = 0; i < (size-SHIFT_SIZE); ++i)
+			{
+				screenBufferPointer[i] = screenBufferPointer[i + SHIFT_SIZE];
+			}
+
+			// load the new data to the screen buffer
+			for (int i = 0; i < SHIFT_SIZE; ++i)
+			{
+				// cast two 8bits data to single 16bits variable
+				tmpVal = (uint16_t)buf[(2*i)+1] + (uint16_t)((uint16_t)buf[(2*i)+0]<<8);
+				
+				// load the data
+				screenBufferPointer[i + size - SHIFT_SIZE] = (uint16_t)((double)(tmpVal-offset) * gain);
+			}
 		}
 	}
 }
