@@ -16,9 +16,7 @@
 #include <string.h>
 #include <math.h>
 
-/* default window size */
-const int HEIGHT = 512;
-const int WIDTH = 1024;
+#include "globalDefinitions.h"
 
 /* Main display buffer */
 uint16_t screenBuffer[WIDTH];
@@ -114,11 +112,14 @@ void myinit(void)
     
     glMatrixMode(GL_MODELVIEW);       
 
-    // taken from: http://www.glprogramming.com/red/chapter06.html
-    glEnable(GL_LINE_SMOOTH);
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-    glHint(GL_LINE_SMOOTH_HINT,GL_DONT_CARE);
+    #if 1
+        // taken from: http://www.glprogramming.com/red/chapter06.html    
+        glEnable(GL_LINE_SMOOTH);
+        glEnable(GL_BLEND);
+        glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+        glHint(GL_LINE_SMOOTH_HINT,GL_DONT_CARE);
+    #endif
+
     glLineWidth(1);
 }
 /*-----------------------------------------------------------------------------
