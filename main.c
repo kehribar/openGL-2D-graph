@@ -22,6 +22,13 @@
 uint16_t screenBuffer[WIDTH];
 extern void fillScreenBuffer(uint16_t* screenBufferPointer,uint16_t size,uint16_t topValue);
 extern int platform_init(int argc, char** argv);
+extern void fillMessage_timeDiff(char* targetBuffer, uint16_t x1_cursor, uint16_t x2_cursor);
+extern void fillMessage_freqDiff(char* targetBuffer, uint16_t x1_cursor, uint16_t x2_cursor);
+extern void fillMessageY1(char* targetBuffer, uint16_t y1_cursor);
+extern void fillMessageY2(char* targetBuffer, uint16_t y2_cursor);
+extern void setTrigger(int x,int y);
+extern void increaseOffset();
+extern void decreaseOffset();
 
 /* On-screen FPS counter print */
 char fpsBuff[128];
@@ -32,11 +39,13 @@ uint16_t cursor1_x;
 uint16_t cursor1_y;
 uint16_t cursor2_x;
 uint16_t cursor2_y;
+char cursorBuff[128];
 uint16_t cursor1_enable;
 uint16_t cursor2_enable;
 
 /* run/pause variable */
 uint8_t pause_acquisition = 0;
+uint8_t acq_mode;
 
 /*-----------------------------------------------------------------------------
 / FPS calculation variables
@@ -82,7 +91,7 @@ static void display_function(void)
             glBegin(GL_LINES);            
                 
                 // color of the line (r,g,b)
-                glColor3f(0.27,0.35,0.45);
+                glColor3f(0.27+0.2,0.35+0.2,0.45+0.2);
 
                 // start point (x,y)
                 glVertex2f(cursor1_x,0);
@@ -91,7 +100,7 @@ static void display_function(void)
                 glVertex2f(cursor1_x,HEIGHT);
 
                 // color of the line (r,g,b)
-                glColor3f(0.27,0.35,0.45);
+                glColor3f(0.27+0.2,0.35+0.2,0.45+0.2);
 
                 // start point (x,y)
                 glVertex2f(0,cursor1_y);
@@ -100,7 +109,10 @@ static void display_function(void)
                 glVertex2f(WIDTH,cursor1_y);
 
             glEnd();
-        glPopAttrib();    
+        glPopAttrib();            
+
+        fillMessageY1(cursorBuff,cursor1_y);        
+        glutPrint(2,HEIGHT+TOP_OFFSET-40,cursorBuff,0.65,0.65,0.65,1);
     }
 
     if(cursor2_enable)
@@ -111,7 +123,7 @@ static void display_function(void)
             glBegin(GL_LINES);            
                 
                 // color of the line (r,g,b)
-                glColor3f(0.45,0.27,0.35);
+                glColor3f(0.45+0.2,0.27+0.2,0.35+0.2);
 
                 // start point (x,y)
                 glVertex2f(cursor2_x,0);
@@ -120,7 +132,7 @@ static void display_function(void)
                 glVertex2f(cursor2_x,HEIGHT);
 
                 // color of the line (r,g,b)
-                glColor3f(0.45,0.27,0.35);
+                glColor3f(0.45+0.2,0.27+0.2,0.35+0.2);
 
                 // start point (x,y)
                 glVertex2f(0,cursor2_y);
@@ -130,12 +142,32 @@ static void display_function(void)
 
             glEnd();
         glPopAttrib();    
+
+        if(cursor1_enable)
+        {
+            fillMessageY1(cursorBuff,cursor2_y);     
+            glutPrint(60,HEIGHT+TOP_OFFSET-40,cursorBuff,0.65,0.65,0.65,1);
+        }
+        else
+        {        
+            fillMessageY1(cursorBuff,cursor2_y);    
+            glutPrint(2,HEIGHT+TOP_OFFSET-40,cursorBuff,0.65,0.65,0.65,1);
+        }
+    }
+
+    if(cursor1_enable && cursor2_enable)
+    {
+        fillMessage_freqDiff(cursorBuff,cursor1_x,cursor2_x);
+        glutPrint(60,HEIGHT+TOP_OFFSET-25,cursorBuff,0.65,0.65,0.65,1);
+
+        fillMessage_timeDiff(cursorBuff,cursor1_x,cursor2_x);
+        glutPrint(2,HEIGHT+TOP_OFFSET-25,cursorBuff,0.65,0.65,0.65,1);
     }
 
     glBegin(GL_LINES);    
 
         /* Draw the screne buffer */    
-        for (int i = 0; i < WIDTH; i++)
+        for (int i = 0; i < (WIDTH-1); i++)
         {
             // color of the line (r,g,b)
             glColor3f (0.75,0.75,0.75);       
@@ -144,7 +176,7 @@ static void display_function(void)
             glVertex2f(i,screenBuffer[i]);
 
             // end point (x,y)
-            glVertex2f(i+1,screenBuffer[i]);
+            glVertex2f(i+1,screenBuffer[i+1]);
         } 
 
     glEnd();
@@ -159,9 +191,21 @@ static void display_function(void)
         glVertex2f(WIDTH,HEIGHT/2);
         glEnd();
     glPopAttrib();
+
+    /* Draw the 'top point' line */
+    glBegin(GL_LINES);
+        glColor3f (1.0,0.3,0);  
+        glVertex2f(0,HEIGHT);
+        glVertex2f(WIDTH,HEIGHT);
+
+        glColor3f (1.0,0.3,0);  
+        glVertex2f(0,0);
+        glVertex2f(WIDTH,0);
+    glEnd();
+    
     
     #if FPS_PRINT
-        glutPrint(2,HEIGHT-10,fpsBuff,0.75,0.75,0.75,1);
+        glutPrint(2,HEIGHT+TOP_OFFSET-11,fpsBuff,0.65,0.65,0.65,1);
     #endif
 
     glutSwapBuffers();
@@ -169,6 +213,9 @@ static void display_function(void)
 /*---------------------------------------------------------------------------*/
 void myinit(void)
 {
+    // free running mode
+    acq_mode = 0;
+
     // initial background color
     glClearColor(0.26, 0.26, 0.26, 0.0);
     
@@ -177,7 +224,7 @@ void myinit(void)
     glLoadIdentity();
 
     // defining the corner points of the window
-    gluOrtho2D( 0, WIDTH, 0, HEIGHT); 
+    gluOrtho2D( 0, WIDTH, 0, HEIGHT+TOP_OFFSET); 
     
     glMatrixMode(GL_MODELVIEW);       
 
@@ -206,7 +253,7 @@ int main(int argc, char** argv)
     
     glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE);
     
-    glutInitWindowSize(WIDTH,HEIGHT);
+    glutInitWindowSize(WIDTH,HEIGHT+TOP_OFFSET);
     
     glutCreateWindow("Real time plotter");
     
@@ -296,16 +343,27 @@ void myMouseFunc( int button, int state, int x, int y )
     
     if(button == 0)
     {
-        cursor1_enable = 1;
-        cursor1_x = x;
-        cursor1_y = HEIGHT - y;
+        if((HEIGHT + TOP_OFFSET - y) <= HEIGHT)
+        {
+            cursor1_enable = 1;
+            cursor1_x = x;
+            cursor1_y = HEIGHT + TOP_OFFSET - y;
+        }
+    }
+
+    if (button == 1)
+    {
+        setTrigger(x,HEIGHT + TOP_OFFSET - y);
     }
 
     if(button == 2)
     {
-        cursor2_enable = 1;
-        cursor2_x = x;
-        cursor2_y = HEIGHT - y;
+        if((HEIGHT + TOP_OFFSET - y) <= HEIGHT)
+        {
+            cursor2_enable = 1;
+            cursor2_x = x;
+            cursor2_y = HEIGHT + TOP_OFFSET - y;
+        }
     }
 
 }
@@ -324,8 +382,22 @@ void keyb(unsigned char key, int x, int y)
     {
         cursor1_enable = 0;
         cursor2_enable = 0;
+
+        // reset to free running mode
+        acq_mode = 0;
     }
 
+    if(key == '8')
+    {
+        increaseOffset();
+    }
+
+    if(key == '2')
+    {
+        decreaseOffset();
+    }
+
+    // space bar
     if(key == 32)
     {
         pause_acquisition = !pause_acquisition;

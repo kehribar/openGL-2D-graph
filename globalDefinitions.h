@@ -5,5 +5,7 @@
 /----------------------------------------------------------------------------*/
 
 /* default window size */
-const int HEIGHT = 512;
-const int WIDTH = 1024;
+const int HEIGHT = (256*3);
+const int WIDTH = 1500;
+
+const int TOP_OFFSET = 50;
